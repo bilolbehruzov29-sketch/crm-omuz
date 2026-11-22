@@ -1,0 +1,28 @@
+{% extends "core/base.html" %}{% load ui %}{% block title %}Курсы и филиалы{% endblock %}
+{% block crumbs %}{% icon "library" 15 %} Курсы и филиалы{% endblock %}
+{% block content %}
+<div class="ph"><div><h1>Курсы и филиалы</h1><p>Справочники, которые используются в группах и профилях</p></div></div>
+<div class="grid c-half">
+  <div class="card">
+    <div class="card-h"><div><h2>Курсы</h2><span class="sub">{{ courses|length }} курсов</span></div></div>
+    <form method="post" class="toolbar" style="margin-bottom:16px">{% csrf_token %}
+      <input name="c-icon" value="📘" style="width:56px;text-align:center;font-size:18px" maxlength="8" title="Эмодзи">
+      <input name="c-name" placeholder="Название курса, например Python" required style="flex:1">
+      <button class="btn primary" name="add_course">{% icon "plus" 16 %} Добавить</button></form>
+    {% for c in courses %}<div class="gitem"><span class="gicon" style="width:40px;height:40px;font-size:19px">{{ c.icon }}</span><div class="grow"><b>{{ c.name }}</b><div class="small muted">{{ c.n }} групп</div></div>
+      <a class="btn icon ghost" href="{% url 'course_edit' c.pk %}" title="Изменить">{% icon "pencil" 16 %}</a>
+      {% include "core/_delete.html" with kind="course" obj=c warn="Курс можно удалить, только если в нём нет групп." %}</div>
+    {% empty %}<div class="empty">{% icon "book-open" 34 %}<b>Курсов нет</b></div>{% endfor %}
+  </div>
+  <div class="card">
+    <div class="card-h"><div><h2>Филиалы</h2><span class="sub">{{ branches|length }} филиалов</span></div></div>
+    <form method="post" class="toolbar" style="margin-bottom:16px">{% csrf_token %}
+      <input name="b-name" placeholder="Название филиала" required style="flex:1">
+      <button class="btn primary" name="add_branch">{% icon "plus" 16 %} Добавить</button></form>
+    {% for b in branches %}<div class="gitem"><span class="gicon" style="width:40px;height:40px">{% icon "building-2" 19 %}</span><div class="grow"><b>{{ b.name }}</b><div class="small muted">{{ b.n }} групп · {{ b.people }} человек</div></div>
+      <a class="btn icon ghost" href="{% url 'branch_edit' b.pk %}" title="Изменить">{% icon "pencil" 16 %}</a>
+      {% include "core/_delete.html" with kind="branch" obj=b warn="У групп и людей этого филиала поле «Филиал» станет пустым." %}</div>
+    {% empty %}<div class="empty">{% icon "building-2" 34 %}<b>Филиалов нет</b></div>{% endfor %}
+  </div>
+</div>
+{% endblock %}

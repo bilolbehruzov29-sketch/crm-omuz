@@ -1,0 +1,88 @@
+{% extends "core/base.html" %}{% load static ui %}{% block title %}Журнал{% endblock %}
+{% block crumbs %}{% icon "layers" 15 %} Группы {% icon "chevron-right" 14 %} {{ group.name }} {% icon "chevron-right" 14 %} Журнал{% endblock %}
+{% block content %}
+<div class="ph"><div style="display:flex;align-items:center;gap:14px"><a class="back" style="margin:0" href="{% if user.is_student %}{% url 'groups' %}{% else %}{% url 'group_detail' group.pk %}{% endif %}">{% icon "arrow-left" 18 %}</a>
+  <div><h1>Журнал</h1><p>{{ group.course.icon }} {{ group.name }}</p></div></div>
+  <div class="rule">{% for t, c, l in rules %}<div class="r">балл &gt; {{ t }} <span class="coin-pill" style="height:24px"><span class="coin" style="width:16px;height:16px;font-size:9px"></span>+{{ c }}</span></div>{% endfor %}</div>
+</div>
+<div class="card">
+  <div class="card-h"><div><h2>Рейтинг по неделям</h2><span class="sub">Недельный балл 0–100 · при экзамене 70% занятия + 30% экзамен, плюс бонусы</span></div></div>
+  <div style="height:300px"><canvas id="chart"></canvas></div>
+</div>
+{% for w in weeks %}
+<details class="week" id="week-{{ w.week }}" {% if w.week == open_week %}open{% endif %}>
+  <summary><span class="wk-num">{{ w.week }}</span>Неделя {{ w.week }} <span class="small muted" style="font-weight:600">{{ w.start|date:"d.m" }} – {{ w.end|date:"d.m" }}</span>
+    {% if w.closed %}<span class="badge green">{% icon "check" 12 %} Закрыта</span>{% endif %}<span class="chev">{% icon "chevron-down" 20 %}</span></summary>
+  <form method="post">{% csrf_token %}<input type="hidden" name="week" value="{{ w.week }}">
+  <div class="jt-wrap"><table class="jt">
+    <thead>
+    <tr><th rowspan="2" class="stick">Ученик</th>{% for d in w.dates %}<th class="day" colspan="{% if editable %}3{% else %}2{% endif %}">{{ d|date:"D, d.m" }}</th>{% endfor %}<th class="day" colspan="4">Итог недели</th></tr>
+    <tr>{% for d in w.dates %}<th class="day">Прис.</th><th>Балл</th>{% if editable %}<th>Бонус</th>{% endif %}{% endfor %}<th class="day">Экзамен</th><th>Бонус</th><th>Итог</th><th>Монеты</th></tr>
+    </thead><tbody>
+    {% for r in w.rows %}
+    <tr>
+      <td class="stick"><div class="person">{% avatar r.student 30 %}<div><b>{% if not user.is_student %}<a href="{% url 'student_profile' r.student.pk %}" style="color:inherit">{{ r.student.get_full_name }}</a>{% else %}{{ r.student.get_full_name }}{% endif %}</b></div></div></td>
+      {% for d, rec in r.cells %}
+        {% if editable %}
+        <td class="day0"><select name="att_{{ r.student.pk }}_{{ d|date:'Ymd' }}" title="Присутствие">
+          <option value="present" {% if rec.attendance == "present" %}selected{% endif %}>✓</option>
+          <option value="late" {% if rec.attendance == "late" %}selected{% endif %}>⏱</option>
+          <option value="absent" {% if rec.attendance == "absent" %}selected{% endif %}>✕</option></select></td>
+        <td><input type="number" min="0" max="5" name="grade_{{ r.student.pk }}_{{ d|date:'Ymd' }}" value="{{ rec.grade|default_if_none:'' }}" placeholder="–"></td>
+        <td><input class="bonus" type="number" name="bonus_{{ r.student.pk }}_{{ d|date:'Ymd' }}" value="{% if rec.bonus %}{{ rec.bonus }}{% endif %}" placeholder="+"></td>
+        {% else %}
+        <td class="day0">{% if not rec %}<span class="faint">·</span>{% elif rec.attendance == "absent" %}<span class="att absent">{% icon "x" 14 %}</span>{% elif rec.attendance == "late" %}<span class="att late">{% icon "clock" 14 %}</span>{% else %}<span class="att present">{% icon "check" 14 %}</span>{% endif %}</td>
+        <td><b>{{ rec.grade|default_if_none:"–" }}</b>{% if rec.bonus %}<sup class="amt plus">+{{ rec.bonus }}</sup>{% endif %}</td>
+        {% endif %}
+      {% endfor %}
+      {% if editable %}
+      <td class="day0"><input class="exam" type="number" min="0" max="100" name="exam_{{ r.student.pk }}" value="{{ r.exam|default_if_none:'' }}" placeholder="–"></td>
+      <td><input class="bonus" type="number" name="wbonus_{{ r.student.pk }}" value="{% if r.week_bonus %}{{ r.week_bonus }}{% endif %}" placeholder="+" title="Бонус за неделю (баллы)"></td>
+      {% else %}
+      <td class="day0">{{ r.exam|default_if_none:"–" }}</td><td>{% if r.bonus %}<span class="amt plus">+{{ r.bonus }}</span>{% else %}–{% endif %}</td>
+      {% endif %}
+      <td><span class="score num {% if r.total > 95 %}top{% elif r.total > 90 %}good{% endif %}">{{ r.total }}</span></td>
+      <td>{% if r.closed %}{% if r.coins %}<span class="coin-pill num" style="height:26px"><span class="coin" style="width:17px;height:17px;font-size:9px"></span>+{{ r.coins }}</span>{% else %}<span class="faint">0</span>{% endif %}{% else %}<span class="faint small">ещё нет</span>{% endif %}</td>
+    </tr>
+    {% empty %}<tr><td colspan="99"><div class="empty">{% icon "users" 34 %}<b>В группе нет учеников</b></div></td></tr>{% endfor %}
+    </tbody></table></div>
+  {% if editable %}
+  <div class="jt-foot">
+    <button class="btn" name="save">{% icon "save" 16 %} Сохранить</button>
+    <button class="btn primary" name="close" value="1" data-x="1">{% icon "circle-check" 16 %} Сохранить и закрыть неделю</button>
+    <span class="small muted">Закрытие начисляет монеты. Повторное закрытие пересчитывает их без дублей.</span>
+  </div>
+  {% endif %}
+  </form>
+</details>
+{% endfor %}
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'core/chart.umd.min.js' %}"></script>
+<script>
+(function(){
+  const data = {{ chart_json|safe }};
+  let chart;
+  function draw(){
+    const css = getComputedStyle(document.documentElement);
+    const grid = css.getPropertyValue('--border').trim(), txt = css.getPropertyValue('--muted').trim();
+    data.datasets.forEach(d => { d.tension = .4; d.pointRadius = 5; d.pointHoverRadius = 7; d.borderWidth = 3; d.pointBackgroundColor = css.getPropertyValue('--surface').trim(); d.pointBorderWidth = 2.5; });
+    if (chart) chart.destroy();
+    chart = new Chart(document.getElementById('chart'), {type: 'line', data, options: {
+      maintainAspectRatio: false, interaction: {mode: 'index', intersect: false},
+      scales: {y: {min: 0, max: 100, ticks: {stepSize: 25, color: txt}, grid: {color: grid}, border: {display: false}},
+               x: {ticks: {color: txt, font: {weight: 600}}, grid: {display: false}}},
+      plugins: {legend: {position: 'bottom', labels: {color: txt, usePointStyle: true, pointStyle: 'circle', padding: 18, font: {family: 'Manrope', weight: 600}}},
+        tooltip: {padding: 12, cornerRadius: 12, titleFont: {family: 'Manrope'}, bodyFont: {family: 'Manrope'}, itemSort: (a, b) => b.raw - a.raw}}}});
+  }
+  Chart.defaults.font.family = 'Manrope';
+  draw(); window.addEventListener('themechange', draw);
+  // подтверждение закрытия недели
+  document.querySelectorAll('button[name=close]').forEach(b => {
+    const f = b.form;
+    b.addEventListener('click', () => { f.dataset.confirm = 'Закрыть неделю ' + f.week.value + '?'; f.dataset.confirmText = 'Оценки сохранятся, а ученики с баллом выше 90 получат монеты.'; f.dataset.ok = 'Закрыть и начислить'; f.dataset.tone = 'primary'; });
+    f.querySelector('button[name=save]').addEventListener('click', () => { delete f.dataset.confirm; });
+  });
+})();
+</script>
+{% endblock %}

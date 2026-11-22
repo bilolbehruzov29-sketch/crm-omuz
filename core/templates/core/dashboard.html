@@ -1,0 +1,41 @@
+{% extends "core/base.html" %}{% load ui %}{% block title %}Обзор{% endblock %}
+{% block crumbs %}{% icon "layout-dashboard" 15 %} Обзор{% endblock %}
+{% block content %}
+<div class="ph"><div><h1>Привет, {{ user.first_name|default:"админ" }} 👋</h1><p>Вот что происходит в учебном центре сегодня</p></div>
+  <div class="actions"><a class="btn" href="{% url 'student_new' %}">{% icon "user-plus" 17 %} Ученик</a><a class="btn primary" href="{% url 'group_new' %}">{% icon "plus" 17 %} Новая группа</a></div></div>
+<div class="grid g4">
+  <a class="card stat link" href="{% url 'students' %}"><span class="arrow">{% icon "arrow-right" 18 %}</span><div class="ic">{% icon "users" 22 %}</div><div class="lbl">Ученики</div><div class="val num">{{ counts.students }}</div><div class="foot">во всех филиалах</div></a>
+  <a class="card stat link" href="{% url 'teachers' %}"><span class="arrow">{% icon "arrow-right" 18 %}</span><div class="ic" style="--c:var(--info)">{% icon "presentation" 22 %}</div><div class="lbl">Учителя</div><div class="val num">{{ counts.teachers }}</div><div class="foot">ведут занятия</div></a>
+  <a class="card stat link" href="{% url 'groups' %}"><span class="arrow">{% icon "arrow-right" 18 %}</span><div class="ic" style="--c:var(--success)">{% icon "layers" 22 %}</div><div class="lbl">Группы</div><div class="val num">{{ counts.groups }}</div><div class="foot"><span class="badge green"><span class="dot"></span>{{ counts.active }} активных</span></div></a>
+  <a class="card stat link" href="{% url 'redemptions' %}"><span class="arrow">{% icon "arrow-right" 18 %}</span><div class="ic" style="--c:var(--warning)">{% icon "coins" 22 %}</div><div class="lbl">Выдано монет</div><div class="val num">{{ counts.coins }}</div><div class="foot">{% if counts.pending %}<span class="badge orange">{{ counts.pending }} заявок ждут</span>{% else %}заявок нет{% endif %}</div></a>
+</div>
+<div class="grid split mt">
+  <div class="card">
+    <div class="card-h"><div><h2>Активные группы</h2><span class="sub">Текущая неделя и состав</span></div><a class="btn sm" href="{% url 'groups' %}?status=active">Все {% icon "arrow-right" 15 %}</a></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Группа</th><th>Учителя</th><th>Ученики</th><th>Прогресс</th><th></th></tr></thead><tbody>
+      {% for g in active_groups %}<tr>
+        <td><div class="person"><span class="gicon" style="width:38px;height:38px;font-size:18px">{{ g.course.icon }}</span><div><b><a href="{% url 'group_detail' g.pk %}" style="color:inherit">{{ g.name }}</a></b><span>{{ g.days_display }} · {{ g.time_from|time:"H:i" }}</span></div></div></td>
+        <td><div class="stack">{% for t in g.teachers.all %}<span title="{{ t }}">{% avatar t 30 %}</span>{% empty %}<span class="faint">—</span>{% endfor %}</div></td>
+        <td class="num"><b>{{ g.n }}</b></td>
+        <td style="min-width:140px"><div class="small muted">неделя {{ g.current_week }} из {{ g.total_weeks }}</div><div class="progress" style="margin-top:6px"><i style="width:{% widthratio g.current_week g.total_weeks 100 %}%"></i></div></td>
+        <td class="actions"><a class="btn sm" href="{% url 'journal' g.pk %}">{% icon "notebook-pen" 15 %} Журнал</a></td>
+      </tr>{% empty %}<tr><td colspan="5"><div class="empty">{% icon "layers" 34 %}<b>Нет активных групп</b>Создайте группу, чтобы начать</div></td></tr>{% endfor %}
+      </tbody></table></div>
+  </div>
+  <div class="card">
+    <div class="card-h"><div><h2>🏆 Лидеры по монетам</h2><span class="sub">Текущий баланс</span></div></div>
+    {% for s in top %}<a class="gitem" href="{% url 'student_profile' s.pk %}" style="color:inherit">
+      <b class="num" style="width:22px;color:{% if forloop.counter == 1 %}#f59e0b{% elif forloop.counter == 2 %}#94a3b8{% elif forloop.counter == 3 %}#c2410c{% else %}var(--faint){% endif %}">{{ forloop.counter }}</b>
+      {% avatar s 34 %}<div class="grow"><b>{{ s.get_full_name }}</b></div><span class="coin-pill num"><span class="coin"></span>{{ s.balance }}</span></a>
+    {% empty %}<div class="empty">{% icon "trophy" 34 %}<b>Пока никого</b>Монеты появятся после первой закрытой недели</div>{% endfor %}
+  </div>
+</div>
+<div class="card mt">
+  <div class="card-h"><div><h2>Последние операции</h2><span class="sub">Начисления и обмены</span></div><a class="btn sm" href="{% url 'transactions' %}">Вся история {% icon "arrow-right" 15 %}</a></div>
+  {% for t in recent %}<div class="tx"><span class="ic {% if t.amount > 0 %}plus{% else %}minus{% endif %}">{% if t.amount > 0 %}{% icon "trending-up" 18 %}{% else %}{% icon "gift" 18 %}{% endif %}</span>
+    <div class="grow"><b>{{ t.student }}</b><span class="small muted">{{ t.title }}</span></div><span class="small faint">{{ t.created_at|date:"d.m, H:i" }}</span>
+    <span class="amt num {% if t.amount > 0 %}plus{% else %}minus{% endif %}" style="width:50px;text-align:right">{% if t.amount > 0 %}+{% endif %}{{ t.amount }}</span></div>
+  {% empty %}<div class="empty">{% icon "history" 34 %}<b>Операций пока нет</b></div>{% endfor %}
+</div>
+{% endblock %}

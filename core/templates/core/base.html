@@ -1,0 +1,69 @@
+{% load static ui %}<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}CRM{% endblock %} · CRM Omuz Bilol</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'core/app.css' %}">
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){}</script>
+</head><body>
+<div class="app">
+  <aside class="side">
+    <a class="brand" href="{% url 'home' %}"><span class="brand-mark">{% icon "graduation-cap" 21 %}</span><span class="brand-name">omuz <span style="background:linear-gradient(90deg,#a5b4fc,#f0abfc);-webkit-background-clip:text;background-clip:text;color:transparent">bilol</span><small>{% if user.is_admin %}Админ-панель{% elif user.is_teacher %}Кабинет учителя{% else %}Кабинет ученика{% endif %}</small></span></a>
+    {% with n=request.resolver_match.url_name %}
+    <nav class="nav">
+      {% if user.is_admin %}
+        <a href="{% url 'dashboard' %}" class="{% if n == 'dashboard' %}on{% endif %}">{% icon "layout-dashboard" %} Обзор</a>
+        <div class="sec">Учёба</div>
+        <a href="{% url 'groups' %}" class="{% if n in 'groups group_detail group_edit group_new journal' %}on{% endif %}">{% icon "layers" %} Группы</a>
+        <a href="{% url 'teachers' %}" class="{% if n in 'teachers teacher_edit teacher_new' %}on{% endif %}">{% icon "presentation" %} Учителя</a>
+        <a href="{% url 'students' %}" class="{% if n in 'students student_profile student_edit student_new' %}on{% endif %}">{% icon "users" %} Ученики</a>
+        <a href="{% url 'catalog' %}" class="{% if n in 'catalog course_edit branch_edit' %}on{% endif %}">{% icon "library" %} Курсы и филиалы</a>
+        <div class="sec">Монеты</div>
+        <a href="{% url 'give_coins' %}" class="{% if n == 'give_coins' %}on{% endif %}">{% icon "hand-coins" %} Начислить</a>
+        <a href="{% url 'rewards' %}" class="{% if n in 'rewards reward_edit reward_new' %}on{% endif %}">{% icon "gift" %} Награды</a>
+        <a href="{% url 'redemptions' %}" class="{% if n == 'redemptions' %}on{% endif %}">{% icon "package" %} Заявки{% if pending_count %}<span class="count">{{ pending_count }}</span>{% endif %}</a>
+        <a href="{% url 'transactions' %}" class="{% if n == 'transactions' %}on{% endif %}">{% icon "history" %} История</a>
+        <div class="sec">Система</div>
+        <a href="/django-admin/">{% icon "settings" %} Django-админка</a>
+      {% elif user.is_teacher %}
+        <a href="{% url 'groups' %}" class="{% if n in 'groups group_detail journal' %}on{% endif %}">{% icon "layers" %} Мои группы</a>
+        <a href="{% url 'students' %}" class="{% if n in 'students student_profile' %}on{% endif %}">{% icon "users" %} Ученики</a>
+        <a href="{% url 'give_coins' %}" class="{% if n == 'give_coins' %}on{% endif %}">{% icon "hand-coins" %} Дать монеты</a>
+        <a href="{% url 'rewards' %}" class="{% if n == 'rewards' %}on{% endif %}">{% icon "gift" %} Награды</a>
+      {% else %}
+        <a href="{% url 'profile' %}" class="{% if n == 'profile' %}on{% endif %}">{% icon "user-round" %} Профиль</a>
+        <a href="{% url 'groups' %}" class="{% if n in 'groups journal' %}on{% endif %}">{% icon "layers" %} Группы</a>
+        <a href="{% url 'rewards' %}" class="{% if n == 'rewards' %}on{% endif %}">{% icon "gift" %} Награды</a>
+      {% endif %}
+    </nav>
+    {% endwith %}
+    <div class="side-user">
+      {% avatar user 36 %}
+      <div class="who"><b>{{ user.get_full_name|default:user.phone }}</b><span>{{ user.get_role_display }}</span></div>
+      <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button title="Выйти">{% icon "log-out" 18 %}</button></form>
+    </div>
+  </aside>
+  <div class="main">
+    <header class="top">
+      <button class="btn icon ghost menu-btn" data-nav-toggle aria-label="Меню">{% icon "menu" %}</button>
+      <div class="crumbs">{% block crumbs %}{% endblock %}</div>
+      <div class="spacer"></div>
+      {% if my_balance is not None %}<a class="coin-pill num" href="{% url 'rewards' %}"><span class="coin"></span>{{ my_balance }}</a>{% endif %}
+      <button class="btn icon" data-theme-toggle title="Сменить тему">{% icon "moon" %}</button>
+    </header>
+    <main class="content">{% block content %}{% endblock %}</main>
+  </div>
+</div>
+
+<div class="toasts">{% for m in messages %}
+  <div class="toast {{ m.tags }}"><span class="ic">{% if m.tags == "error" %}{% icon "circle-x" %}{% elif m.tags == "warning" %}{% icon "triangle-alert" %}{% else %}{% icon "circle-check" %}{% endif %}</span><p>{{ m }}</p><button aria-label="Закрыть">{% icon "x" 16 %}</button></div>
+{% endfor %}</div>
+
+<dialog id="confirm-dialog"><div class="dlg">
+  <div class="ic">{% icon "trash-2" 26 %}</div><h3></h3><p></p>
+  <div class="btns"><button class="btn" data-cancel>Отмена</button><button class="btn danger solid" data-ok>Удалить</button></div>
+</div></dialog>
+<template id="ic-trash">{% icon "trash-2" 26 %}</template><template id="ic-check">{% icon "sparkles" 26 %}</template>
+<script src="{% static 'core/app.js' %}"></script>
+{% block scripts %}{% endblock %}
+</body></html>

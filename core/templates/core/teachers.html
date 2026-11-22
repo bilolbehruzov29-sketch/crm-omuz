@@ -1,0 +1,26 @@
+{% extends "core/base.html" %}{% load ui %}{% block title %}Учителя{% endblock %}
+{% block crumbs %}{% icon "presentation" 15 %} Учителя{% endblock %}
+{% block content %}
+<div class="ph"><div><h1>Учителя</h1><p>{{ page.paginator.count }} учителей</p></div>
+  <div class="actions"><a class="btn primary" href="{% url 'teacher_new' %}">{% icon "user-plus" 17 %} Новый учитель</a></div></div>
+<form class="toolbar"><div class="field-icon">{% icon "search" 17 %}<input name="q" value="{{ f.q }}" placeholder="Имя или телефон"></div></form>
+<div class="grid g3">
+{% for t in page %}
+  <div class="card gcard">
+    <div class="head">{% avatar t 52 %}<div style="flex:1;min-width:0"><h3>{{ t.get_full_name }}</h3><div class="small muted">{% icon "phone" 13 %} {{ t.phone }}</div><div class="small muted">{% icon "building-2" 13 %} {{ t.branch|default:"без филиала" }}</div></div>
+      {% if t.is_active %}<span class="badge green"><span class="dot"></span>Работает</span>{% else %}<span class="badge red">Заблокирован</span>{% endif %}</div>
+    <div>
+      <div class="small muted" style="font-weight:700;margin-bottom:8px">ГРУППЫ · {{ t.n_groups }}</div>
+      {% for g in t.teaching_groups.all %}<a class="badge {% if not g.is_active %}gray{% endif %}" style="margin:0 4px 6px 0" href="{% url 'group_detail' g.pk %}">{{ g.course.icon }} {{ g.name|truncatechars:30 }}</a>{% empty %}<span class="faint small">Нет групп</span>{% endfor %}
+    </div>
+    <div class="btn-row" style="margin-top:auto">
+      <a class="btn sm" style="flex:1" href="{% url 'teacher_edit' t.pk %}">{% icon "pencil" 15 %} Изменить</a>
+      <form method="post" action="{% url 'toggle_active' t.pk %}" data-confirm="{% if t.is_active %}Заблокировать{% else %}Разблокировать{% endif %} {{ t.get_full_name }}?" data-confirm-text="{% if t.is_active %}Учитель не сможет войти. Данные сохранятся.{% else %}Учитель снова сможет войти.{% endif %}" data-ok="Да" {% if not t.is_active %}data-tone="primary"{% endif %}>{% csrf_token %}<input type="hidden" name="next" value="{% url 'teachers' %}">
+        <button class="btn icon ghost" title="Блокировка">{% if t.is_active %}{% icon "lock" 16 %}{% else %}{% icon "lock-open" 16 %}{% endif %}</button></form>
+      {% include "core/_delete.html" with kind="teacher" obj=t warn="Учитель будет удалён и снят со всех групп." %}
+    </div>
+  </div>
+{% empty %}<div class="card" style="grid-column:1/-1"><div class="empty">{% icon "presentation" 40 %}<b>Учителей нет</b>Добавьте первого учителя</div></div>{% endfor %}
+</div>
+{% include "core/_pager.html" %}
+{% endblock %}

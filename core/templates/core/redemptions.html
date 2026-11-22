@@ -1,0 +1,24 @@
+{% extends "core/base.html" %}{% load ui %}{% block title %}Заявки на обмен{% endblock %}
+{% block crumbs %}{% icon "package" 15 %} Заявки{% endblock %}
+{% block content %}
+<div class="ph"><div><h1>Заявки на обмен</h1><p>Подтвердите выдачу приза или отклоните — монеты вернутся ученику</p></div></div>
+<div class="toolbar"><div class="seg">
+  <a class="{% if status == 'pending' %}on{% endif %}" href="?status=pending">Ожидают{% if pending_count %} · {{ pending_count }}{% endif %}</a>
+  <a class="{% if status == 'approved' %}on{% endif %}" href="?status=approved">Выдано</a>
+  <a class="{% if status == 'rejected' %}on{% endif %}" href="?status=rejected">Отклонено</a>
+  <a class="{% if not status %}on{% endif %}" href="?status=">Все</a></div></div>
+<div class="card"><div class="table-wrap"><table>
+  <thead><tr><th>Ученик</th><th>Награда</th><th>Цена</th><th>Дата</th><th>Статус</th><th></th></tr></thead><tbody>
+  {% for r in page %}<tr>
+    <td><a class="person" href="{% url 'student_profile' r.student.pk %}">{% avatar r.student 36 %}<div><b>{{ r.student }}</b><span>{{ r.student.phone }}</span></div></a></td>
+    <td><span style="font-size:20px;margin-right:6px">{{ r.reward.icon }}</span><b>{{ r.reward }}</b></td>
+    <td><span class="coin-pill num"><span class="coin"></span>{{ r.price }}</span></td>
+    <td class="small muted">{{ r.created_at|date:"d.m.Y, H:i" }}</td>
+    <td><span class="badge {% if r.status == 'approved' %}green{% elif r.status == 'rejected' %}red{% else %}orange{% endif %}">{{ r.get_status_display }}</span></td>
+    <td class="actions">{% if r.status == 'pending' %}
+      <form method="post" style="display:inline">{% csrf_token %}<input type="hidden" name="id" value="{{ r.pk }}"><input type="hidden" name="action" value="approve"><button class="btn sm success">{% icon "check" 15 %} Выдать</button></form>
+      <form method="post" style="display:inline" data-confirm="Отклонить заявку?" data-confirm-text="{{ r.price }} монет вернутся ученику {{ r.student }}." data-ok="Отклонить">{% csrf_token %}<input type="hidden" name="id" value="{{ r.pk }}"><input type="hidden" name="action" value="reject"><button class="btn sm danger">{% icon "x" 15 %} Отклонить</button></form>
+    {% endif %}</td></tr>
+  {% empty %}<tr><td colspan="6"><div class="empty">{% icon "package" 40 %}<b>Заявок нет</b>Когда ученик обменяет монеты, заявка появится здесь</div></td></tr>{% endfor %}
+  </tbody></table></div>{% include "core/_pager.html" %}</div>
+{% endblock %}

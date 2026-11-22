@@ -1,0 +1,58 @@
+{% extends "core/base.html" %}{% load ui %}{% block title %}{{ group.name }}{% endblock %}
+{% block crumbs %}{% icon "layers" 15 %} Группы {% icon "chevron-right" 14 %} {{ group.name }}{% endblock %}
+{% block content %}
+<div class="ph">
+  <div style="display:flex;align-items:center;gap:14px"><a class="back" style="margin:0" href="{% url 'groups' %}">{% icon "arrow-left" 18 %}</a><span class="gicon">{{ group.course.icon }}</span>
+    <div><h1>{{ group.name }}</h1><p>{{ group.course }} · {{ group.branch|default:"без филиала" }} ·
+      {% if group.status == "Активна" %}<span class="badge green"><span class="dot"></span>Активна</span>{% elif group.status == "Скоро" %}<span class="badge orange">Скоро</span>{% else %}<span class="badge gray">Завершена</span>{% endif %}</p></div></div>
+  <div class="actions">
+    <a class="btn primary" href="{% url 'journal' group.pk %}">{% icon "notebook-pen" 17 %} Журнал</a>
+    {% if admin %}<a class="btn" href="{% url 'group_edit' group.pk %}">{% icon "pencil" 16 %} Изменить</a>
+    {% include "core/_delete.html" with kind="group" obj=group label="Удалить" warn="Журнал и итоги недель группы будут удалены. Монеты учеников останутся." %}{% endif %}
+  </div>
+</div>
+<div class="grid g4">
+  <div class="card stat"><div class="ic">{% icon "users" 22 %}</div><div class="lbl">Учеников</div><div class="val num">{{ members|length }}</div></div>
+  <div class="card stat"><div class="ic" style="--c:var(--info)">{% icon "calendar" 22 %}</div><div class="lbl">Период</div><div class="val" style="font-size:20px;margin-top:8px">{{ group.start_date|date:"d.m" }} → {{ group.end_date|date:"d.m.Y" }}</div></div>
+  <div class="card stat"><div class="ic" style="--c:var(--success)">{% icon "clock" 22 %}</div><div class="lbl">Расписание</div><div class="val" style="font-size:20px;margin-top:8px">{{ group.time_from|time:"H:i" }}–{{ group.time_to|time:"H:i" }}</div><div class="foot">{{ group.days_display }}</div></div>
+  <div class="card stat"><div class="ic" style="--c:var(--warning)">{% icon "trending-up" 22 %}</div><div class="lbl">Неделя</div><div class="val num">{{ week }} <span class="faint" style="font-size:20px">/ {{ group.total_weeks }}</span></div><div class="progress"><i style="width:{% widthratio week group.total_weeks 100 %}%"></i></div></div>
+</div>
+<div class="grid mt c-aside">
+  <div class="card">
+    <div class="card-h"><div><h2>Ученики</h2><span class="sub">Средний и последний недельный балл</span></div>
+      {% if admin %}<div class="btn-row"><a class="btn sm" href="{% url 'student_new' %}?group={{ group.pk }}&next={% url 'group_detail' group.pk %}">{% icon "plus" 15 %} Новый</a><button class="btn sm primary" data-open="add-students">{% icon "user-plus" 15 %} Добавить</button></div>{% endif %}</div>
+    <div class="table-wrap"><table><thead><tr><th>Ученик</th><th>Средний балл</th><th>Последняя неделя</th><th>Монеты</th><th></th></tr></thead><tbody>
+    {% for m in members %}<tr>
+      <td><a class="person" href="{% url 'student_profile' m.s.pk %}">{% avatar m.s 36 %}<div><b>{{ m.s.get_full_name }}</b><span>{{ m.s.phone }}</span></div></a></td>
+      <td>{% if m.avg is not None %}<span class="score {% if m.avg > 95 %}top{% elif m.avg > 90 %}good{% endif %} num">{{ m.avg }}</span>{% else %}<span class="faint">—</span>{% endif %}</td>
+      <td class="num">{{ m.last|default_if_none:"—" }}</td>
+      <td><span class="coin-pill num"><span class="coin"></span>{{ m.s.balance|default:0 }}</span></td>
+      <td class="actions"><a class="btn icon ghost" title="Дать монеты" href="{% url 'give_coins' %}?student={{ m.s.pk }}">{% icon "hand-coins" 16 %}</a>
+        {% if admin %}<form method="post" style="display:inline" data-confirm="Убрать {{ m.s.get_full_name }} из группы?" data-confirm-text="Оценки в журнале сохранятся, ученика можно будет вернуть." data-ok="Убрать">{% csrf_token %}<input type="hidden" name="action" value="remove_student"><input type="hidden" name="ids" value="{{ m.s.pk }}"><button class="btn icon danger ghost" title="Убрать из группы">{% icon "user-minus" 16 %}</button></form>{% endif %}</td>
+    </tr>{% empty %}<tr><td colspan="5"><div class="empty">{% icon "users" 36 %}<b>В группе пока нет учеников</b>{% if admin %}Нажмите «Добавить», чтобы записать учеников{% endif %}</div></td></tr>{% endfor %}
+    </tbody></table></div>
+  </div>
+  <div class="card" style="align-self:start">
+    <div class="card-h"><div><h2>Учителя</h2></div>{% if admin %}<button class="btn sm" data-open="add-teachers">{% icon "plus" 15 %} Назначить</button>{% endif %}</div>
+    {% for t in group.teachers.all %}<div class="gitem">{% avatar t 36 %}<div class="grow person"><div><b>{{ t.get_full_name }}</b><span>{{ t.phone }}</span></div></div>
+      {% if admin %}<form method="post" data-confirm="Снять {{ t.get_full_name }} с группы?" data-confirm-text="Учитель потеряет доступ к журналу этой группы." data-ok="Снять">{% csrf_token %}<input type="hidden" name="action" value="remove_teacher"><input type="hidden" name="ids" value="{{ t.pk }}"><button class="btn icon danger ghost" title="Снять">{% icon "x" 16 %}</button></form>{% endif %}</div>
+    {% empty %}<div class="empty" style="padding:24px">{% icon "presentation" 30 %}<b>Учитель не назначен</b></div>{% endfor %}
+  </div>
+</div>
+
+{% if admin %}
+<dialog id="add-students"><form method="post" class="dlg">{% csrf_token %}<input type="hidden" name="action" value="add_students">
+  <div class="ic pr">{% icon "user-plus" 26 %}</div><h3>Добавить учеников</h3><p>Выберите одного или нескольких</p>
+  <div class="field-icon" style="margin-bottom:10px">{% icon "search" 17 %}<input data-filter="#pick-st" placeholder="Поиск"></div>
+  <div class="pick" id="pick-st">{% for s in available_students %}<label><input type="checkbox" name="ids" value="{{ s.pk }}">{% avatar s 30 %}<span><b>{{ s.get_full_name }}</b> <span class="small muted">{{ s.phone }}</span></span></label>
+  {% empty %}<div class="empty" style="padding:24px">Все ученики уже в группе</div>{% endfor %}</div>
+  <div class="btns"><button type="button" class="btn" data-close>Отмена</button><button class="btn primary">Добавить</button></div>
+</form></dialog>
+<dialog id="add-teachers"><form method="post" class="dlg">{% csrf_token %}<input type="hidden" name="action" value="add_teachers">
+  <div class="ic pr">{% icon "presentation" 26 %}</div><h3>Назначить учителя</h3><p>Учитель получит доступ к журналу</p>
+  <div class="pick">{% for t in available_teachers %}<label><input type="checkbox" name="ids" value="{{ t.pk }}">{% avatar t 30 %}<span><b>{{ t.get_full_name }}</b> <span class="small muted">{{ t.phone }}</span></span></label>
+  {% empty %}<div class="empty" style="padding:24px">Нет свободных учителей</div>{% endfor %}</div>
+  <div class="btns"><button type="button" class="btn" data-close>Отмена</button><button class="btn primary">Назначить</button></div>
+</form></dialog>
+{% endif %}
+{% endblock %}

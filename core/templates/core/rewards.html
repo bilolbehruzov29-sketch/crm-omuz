@@ -1,0 +1,55 @@
+{% extends "core/base.html" %}{% load ui %}{% block title %}Награды{% endblock %}
+{% block crumbs %}{% icon "gift" 15 %} Награды{% endblock %}
+{% block content %}
+<div class="ph"><div><h1>Награды</h1><p>{% if user.is_student %}Обменивай монеты на крутые призы{% else %}Каталог призов для учеников{% endif %}</p></div>
+  {% if user.is_admin %}<div class="actions"><a class="btn primary" href="{% url 'reward_new' %}">{% icon "plus" 17 %} Новая награда</a></div>{% endif %}</div>
+{% if user.is_student %}
+<div class="grid c-wallet">
+  <div style="display:flex;flex-direction:column;gap:20px">
+    <div class="wallet">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;position:relative"><div><div class="lbl">Общий баланс</div><div class="chip">Кошелёк Omuz Bilol</div></div>{% icon "wallet" 30 %}</div>
+      <div><div class="amount num">{{ balance }}<small>МОНЕТ</small></div><div class="lbl" style="margin-top:6px">Хороший балл недели +3 · Отличный +5</div></div>
+    </div>
+    <div class="card" style="flex:1"><div class="card-h"><h2>Мои обмены</h2>{% icon "package" 18 %}</div>
+      {% for r in my_redemptions %}<div class="tx"><span class="ic plus" style="font-size:18px;background:var(--surface-2)">{{ r.reward.icon }}</span>
+        <div class="grow"><b>{{ r.reward.title }}</b><span class="small muted">{{ r.created_at|date:"d.m.Y, H:i" }}</span></div>
+        <span class="badge {% if r.status == 'approved' %}green{% elif r.status == 'rejected' %}red{% else %}orange{% endif %}">{{ r.get_status_display }}</span>
+        <span class="amt minus num">−{{ r.price }}</span></div>
+      {% empty %}<div class="empty" style="padding:24px">{% icon "package" 30 %}<b>Обменов пока нет</b>Выбери награду ниже</div>{% endfor %}
+    </div>
+  </div>
+  <div class="card"><div class="card-h"><div><h2>История операций</h2><span class="sub">Последние 30</span></div>{% icon "history" 18 %}</div>
+    <div class="scroll">
+    {% for t in history %}<div class="tx">
+      <span class="ic {% if t.amount > 0 %}plus{% else %}minus{% endif %}">{% if t.kind == "week_excellent" %}{% icon "trophy" 18 %}{% elif t.kind == "week_good" %}{% icon "star" 18 %}{% elif t.kind == "teacher" or t.kind == "admin" %}{% icon "award" 18 %}{% elif t.amount > 0 %}{% icon "trending-up" 18 %}{% else %}{% icon "gift" 18 %}{% endif %}</span>
+      <div class="grow"><b>{{ t.title }}</b><span class="small muted">{{ t.created_at|date:"d.m.Y, H:i" }}{% if t.created_by and t.kind == 'teacher' %} · от {{ t.created_by }}{% endif %}</span></div>
+      <span class="amt num {% if t.amount > 0 %}plus{% else %}minus{% endif %}">{% if t.amount > 0 %}+{% endif %}{{ t.amount }}</span></div>
+    {% empty %}<div class="empty">{% icon "coins" 34 %}<b>Пока пусто</b>Получи балл выше 90 за неделю — и монеты появятся здесь</div>{% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+<form class="toolbar mt">
+  <div class="field-icon">{% icon "search" 17 %}<input name="q" value="{{ f.q }}" placeholder="Поиск награды"></div>
+  <input name="min" value="{{ f.min }}" placeholder="Мин" style="width:90px" inputmode="numeric"><span class="faint">—</span><input name="max" value="{{ f.max }}" placeholder="Макс" style="width:90px" inputmode="numeric">
+  <button class="btn">{% icon "filter" 16 %} Найти</button>
+</form>
+<div class="rewards">
+{% for r in page %}
+  <div class="card reward">
+    <div class="pic">{% if r.image %}<img src="{{ r.image.url }}" alt="">{% else %}{{ r.icon }}{% endif %}
+      {% if user.is_student %}{% if r.in_stock and balance >= r.price %}<span class="badge green">Доступно</span>{% elif not r.in_stock %}<span class="badge gray">Нет в наличии</span>{% else %}<span class="badge red">Не хватает</span>{% endif %}
+      {% elif not r.is_active %}<span class="badge gray">Скрыта</span>{% endif %}</div>
+    <h3>{{ r.title }}</h3>
+    <div class="price num"><span class="coin"></span>{{ r.price }} <small>МОНЕТ</small>{% if r.stock is not None %}<span class="small muted" style="margin-left:auto;font-weight:600">осталось {{ r.stock }}</span>{% endif %}</div>
+    {% if user.is_student %}
+      <form method="post" data-confirm="Обменять {{ r.price }} монет?" data-confirm-text="Ты получишь «{{ r.title }}». Администратор подтвердит выдачу." data-ok="Обменять" data-tone="primary">{% csrf_token %}<input type="hidden" name="reward" value="{{ r.pk }}">
+      {% if not r.in_stock %}<button class="btn block" disabled>Нет в наличии</button>
+      {% elif balance >= r.price %}<button class="btn primary block">{% icon "sparkles" 16 %} Обменять</button>
+      {% else %}<div class="progress" style="margin:0 0 10px" title="{{ balance }} из {{ r.price }}"><i style="width:{% widthratio balance r.price 100 %}%"></i></div><button class="btn block" disabled>Не хватает монет</button>{% endif %}</form>
+    {% elif user.is_admin %}<div class="foot btn-row"><a class="btn sm" style="flex:1" href="{% url 'reward_edit' r.pk %}">{% icon "pencil" 15 %} Изменить</a>{% include "core/_delete.html" with kind="reward" obj=r warn="Если награду уже обменивали, она будет скрыта, а не удалена." %}</div>{% endif %}
+  </div>
+{% empty %}<div class="card" style="grid-column:1/-1"><div class="empty">{% icon "gift" 40 %}<b>Ничего не найдено</b></div></div>{% endfor %}
+</div>
+{% include "core/_pager.html" %}
+{% endblock %}

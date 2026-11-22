@@ -1,0 +1,12 @@
+{% load ui %}<div class="f {% if field.errors %}has-err{% endif %} {% if wide or field.field.widget.input_type == 'checkbox' and field.field.widget.allow_multiple_selected %}wide{% endif %}">
+  {% if field.field.widget.input_type == "checkbox" and not field.field.widget.allow_multiple_selected %}
+    <label style="display:flex;gap:10px;align-items:center;font-weight:700;cursor:pointer">{{ field }} {{ field.label }}</label>
+  {% else %}
+    <label class="l" for="{{ field.id_for_label }}">{{ field.label }}</label>
+    {% if field.field.widget.allow_multiple_selected %}
+      <div class="checks {% if field.name == 'day_choices' %}days{% endif %}">{% for c in field %}<label>{{ c.tag }} {{ c.choice_label }}</label>{% endfor %}</div>
+    {% else %}{{ field }}{% endif %}
+  {% endif %}
+  {% if field.help_text %}<span class="help">{{ field.help_text }}</span>{% endif %}
+  {% for e in field.errors %}<span class="err">{{ e }}</span>{% endfor %}
+</div>

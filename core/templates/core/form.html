@@ -1,0 +1,22 @@
+{% extends "core/base.html" %}{% load ui %}{% block title %}{{ title }}{% endblock %}
+{% block crumbs %}{% icon "pencil" 15 %} {% if obj %}Редактирование{% else %}Создание{% endif %}{% endblock %}
+{% block content %}
+<div class="ph"><div><h1><a class="back" href="{% url back %}">{% icon "arrow-left" 18 %}</a>{{ title }}</h1>{% if obj %}<p>{{ obj }}</p>{% endif %}</div></div>
+<form method="post" enctype="multipart/form-data" class="card form-card">{% csrf_token %}
+  {% for e in form.non_field_errors %}<div class="toast error" style="animation:none;margin-bottom:16px"><span class="ic">{% icon "circle-x" %}</span><p>{{ e }}</p></div>{% endfor %}
+  <div class="form-grid">
+    {% for field in form %}{% include "core/_field.html" %}{% endfor %}
+  </div>
+  <div class="form-actions">
+    <button class="btn primary">{% icon "save" 17 %} Сохранить</button>
+    <a class="btn" href="{% url back %}">Отмена</a>
+    <span class="grow"></span>
+  </div>
+</form>
+{% if obj and kind %}
+<div class="card form-card mt" style="border-color:color-mix(in srgb,var(--danger) 30%,var(--border))">
+  <div class="card-h" style="margin:0"><div><h2>Опасная зона</h2><span class="sub">{% if kind == "group" %}Удалится группа вместе с журналом и итогами недель. Монеты учеников останутся.{% elif kind == "student" or kind == "teacher" %}Пользователь будет удалён навсегда вместе с его историей.{% else %}Удаление нельзя отменить.{% endif %}</span></div>
+  {% include "core/_delete.html" with label="Удалить" %}</div>
+</div>
+{% endif %}
+{% endblock %}

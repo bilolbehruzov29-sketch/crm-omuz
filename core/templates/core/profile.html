@@ -1,0 +1,76 @@
+{% extends "core/base.html" %}{% load ui %}{% block title %}{{ student.get_full_name }}{% endblock %}
+{% block crumbs %}{% if student != user %}{% icon "users" 15 %} Ученики {% icon "chevron-right" 14 %} {{ student.get_full_name }}{% else %}{% icon "user-round" 15 %} Мой профиль{% endif %}{% endblock %}
+{% block content %}
+<div class="ph"><div><h1>{% if student != user %}<a class="back" href="{% url 'students' %}">{% icon "arrow-left" 18 %}</a>{% endif %}{% if student == user %}Привет, {{ student.first_name }}! 👋{% else %}Профиль ученика{% endif %}</h1>
+  <p>{% if student == user %}Твой прогресс, посещаемость и группы{% else %}{{ student.get_full_name }}{% endif %}</p></div>
+  <div class="actions">
+    {% if not user.is_student %}<a class="btn success" href="{% url 'give_coins' %}?student={{ student.pk }}">{% icon "hand-coins" 17 %} Дать монеты</a>{% endif %}
+    {% if user.is_admin %}<a class="btn" href="{% url 'student_edit' student.pk %}">{% icon "pencil" 16 %} Изменить</a>{% endif %}
+  </div></div>
+<div class="grid g2">
+  <div class="card hero">
+    <div class="cover"></div>
+    <div class="body">
+      {% avatar student 96 %}
+      <h2>{{ student.get_full_name }}</h2>
+      <div style="display:flex;gap:6px;justify-content:center;margin-top:8px"><span class="badge">{% icon "graduation-cap" 13 %} Ученик</span>{% if not student.is_active %}<span class="badge red">Заблокирован</span>{% endif %}</div>
+      <a class="wallet" href="{% url 'rewards' %}" style="min-height:0;padding:18px 20px;margin-top:20px;text-align:left;flex-direction:row;align-items:center">
+        <div style="position:relative"><div class="lbl">Баланс</div><div class="amount" style="font-size:36px">{{ balance }}<small>монет</small></div></div>
+        <span style="position:relative;opacity:.9">{% icon "wallet" 34 %}</span></a>
+    </div>
+    <div style="padding:0 22px 18px">
+      <div class="kv">{% icon "calendar" 16 %}<span>Регистрация</span><b>{{ student.date_joined|date:"d.m.Y" }}</b></div>
+      <div class="kv">{% icon "building-2" 16 %}<span>Филиал</span><b>{{ student.branch|default:"—" }}</b></div>
+      <div class="kv">{% icon "cake" 16 %}<span>День рождения</span><b>{{ student.birth_date|date:"d.m.Y"|default:"—" }}{% if student.age %} <span class="faint">· {{ student.age }} лет</span>{% endif %}</b></div>
+      <div class="kv">{% icon "map-pin" 16 %}<span>Адрес</span><b>{{ student.address|default:"—" }}</b></div>
+      <div class="kv">{% icon "phone" 16 %}<span>Телефон</span><b class="num">{{ student.phone }}</b></div>
+      {% if student.extra_phone %}<div class="kv">{% icon "phone" 16 %}<span>{{ student.extra_phone_note|default:"Доп. телефон"|capfirst }}</span><b class="num">{{ student.extra_phone }}</b></div>{% endif %}
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-h"><div><h2>Группы</h2><span class="sub">{{ groups|length }} групп</span></div></div>
+    {% for g in groups %}
+    <div class="gitem">
+      <span class="gicon">{{ g.course.icon }}</span>
+      <div class="grow"><b>{{ g.name }}</b>
+        <div class="small muted" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:3px">{{ g.start_date|date:"d.m.Y" }} – {{ g.end_date|date:"d.m.Y" }}
+          {% if g.status == "Активна" %}<span class="badge green"><span class="dot"></span>Активна</span>{% elif g.status == "Скоро" %}<span class="badge orange">Скоро</span>{% else %}<span class="badge gray">Завершена</span>{% endif %}</div>
+        <div class="small" style="margin-top:6px">{% icon "clock" 13 %} {{ g.days_display }} · <b style="color:var(--primary)">{{ g.time_from|time:"H:i" }}–{{ g.time_to|time:"H:i" }}</b></div></div>
+      <a class="btn sm" href="{% url 'journal' g.pk %}">{% icon "notebook-pen" 15 %} Журнал</a>
+    </div>
+    {% empty %}<div class="empty">{% icon "layers" 36 %}<b>Пока нет групп</b></div>{% endfor %}
+  </div>
+</div>
+
+{% if group %}
+<div class="card mt" style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:16px 22px">
+  <div><h2>Посещаемость</h2><span class="small muted">{{ group.name }}</span></div>
+  <form class="btn-row" method="get" style="flex-wrap:wrap">
+    <select name="group" onchange="this.form.submit()" style="width:260px">{% for g in groups %}<option value="{{ g.pk }}" {% if g == group %}selected{% endif %}>{{ g.name }}</option>{% endfor %}</select>
+    <div class="seg" style="align-items:center"><a href="?group={{ group.pk }}&month={{ prev_month }}">{% icon "chevron-left" 16 %}</a><b style="padding:0 10px;min-width:120px;text-align:center">{{ month_label }}</b><a href="?group={{ group.pk }}&month={{ next_month }}">{% icon "chevron-right" 16 %}</a></div>
+  </form>
+</div>
+<div class="grid g4 mt">
+  <div class="card stat"><div class="ic" style="--c:var(--success)">{% icon "calendar-check" 22 %}</div><div class="lbl">Присутствовал</div><div class="val num">{{ stats.present }}</div><div class="foot">{{ stats.present_time }} всего</div></div>
+  <div class="card stat"><div class="ic" style="--c:var(--danger)">{% icon "calendar-x" 22 %}</div><div class="lbl">Пропустил</div><div class="val num">{{ stats.absent }}</div><div class="foot">{{ stats.absent_time }} пропуска</div></div>
+  <div class="card stat"><div class="ic" style="--c:var(--warning)">{% icon "timer" 22 %}</div><div class="lbl">Опоздал</div><div class="val num">{{ stats.late }}</div><div class="foot">{{ stats.late_time }} опозданий</div></div>
+  <div class="card stat"><div class="ic">{% icon "trending-up" 22 %}</div><div class="lbl">Посещаемость</div><div class="val num">{{ stats.rate }}%</div><div class="progress"><i style="width:{{ stats.rate|floatformat:0 }}%"></i></div></div>
+</div>
+<div class="grid mt c-left">
+  <div class="card" style="align-self:start"><div class="card-h"><h2>Расписание</h2>{% icon "calendar" 18 %}</div>
+    {% for day, g in schedule %}<div class="kv"><b style="text-align:left;flex:1">{{ day }}</b><span class="num" style="flex:none">{{ g.time_from|time:"H:i" }} – {{ g.time_to|time:"H:i" }}</span></div>{% endfor %}
+  </div>
+  <div class="card"><div class="table-wrap"><table>
+    <thead><tr><th>День</th><th>Балл</th><th>Статус</th><th>Присутствие</th><th>Опоздание</th><th>Бонус</th></tr></thead><tbody>
+    {% for r in rows %}<tr>
+      <td><b class="num" style="font-size:16px">{{ r.date|date:"j" }}</b> <span class="small muted">{{ r.date|date:"D" }}</span></td>
+      <td>{% if r.rec.grade is not None %}<span class="score num {% if r.rec.grade == 5 %}good{% endif %}" style="min-width:38px">{{ r.rec.grade }}</span>{% else %}<span class="faint">–</span>{% endif %}</td>
+      <td>{% if not r.rec %}<span class="badge gray">Нет отметки</span>{% elif r.rec.attendance == "absent" %}<span class="badge red">Пропуск</span>{% elif r.rec.attendance == "late" %}<span class="badge orange">Опоздал</span>{% else %}<span class="badge green">Присутствовал</span>{% endif %}</td>
+      <td class="muted num">{% if r.rec and r.rec.attendance != "absent" %}{{ r.minutes }} мин{% else %}–{% endif %}</td>
+      <td class="muted num">{% if r.rec.late_minutes %}{{ r.rec.late_minutes }} мин{% else %}–{% endif %}</td>
+      <td>{% if r.rec.bonus %}<span class="amt plus">+{{ r.rec.bonus }}</span>{% else %}<span class="faint">–</span>{% endif %}</td>
+    </tr>{% empty %}<tr><td colspan="6"><div class="empty">{% icon "calendar" 34 %}<b>В этом месяце занятий нет</b></div></td></tr>{% endfor %}
+    </tbody></table></div></div>
+</div>
+{% endif %}
+{% endblock %}

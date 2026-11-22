@@ -1,0 +1,18 @@
+{% extends "core/base.html" %}{% load ui %}{% block title %}История монет{% endblock %}
+{% block crumbs %}{% icon "history" 15 %} История{% endblock %}
+{% block content %}
+<div class="ph"><div><h1>История монет</h1><p>Все начисления, списания и обмены</p></div></div>
+<form class="toolbar"><select name="kind" onchange="this.form.submit()" style="width:260px"><option value="">Все типы операций</option>
+  {% for v, l in kinds %}<option value="{{ v }}" {% if kind == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></form>
+<div class="card"><div class="table-wrap"><table>
+  <thead><tr><th>Ученик</th><th>Операция</th><th>Тип</th><th>Группа</th><th>Кто</th><th>Дата</th><th style="text-align:right">Монеты</th></tr></thead><tbody>
+  {% for t in page %}<tr>
+    <td><a class="person" href="{% url 'student_profile' t.student.pk %}">{% avatar t.student 32 %}<div><b>{{ t.student }}</b></div></a></td>
+    <td>{{ t.reason|default:"—" }}</td>
+    <td><span class="badge {% if t.kind == 'week_excellent' or t.kind == 'week_good' %}green{% elif t.kind == 'redeem' %}red{% elif t.kind == 'refund' or t.kind == 'week_correction' %}orange{% endif %}">{{ t.get_kind_display }}</span></td>
+    <td class="small">{{ t.group|default:"—" }}</td><td class="small">{{ t.created_by|default:"система" }}</td>
+    <td class="small muted">{{ t.created_at|date:"d.m.Y H:i" }}</td>
+    <td style="text-align:right"><span class="amt num {% if t.amount > 0 %}plus{% else %}minus{% endif %}">{% if t.amount > 0 %}+{% endif %}{{ t.amount }}</span></td></tr>
+  {% empty %}<tr><td colspan="7"><div class="empty">{% icon "history" 40 %}<b>Пусто</b></div></td></tr>{% endfor %}
+  </tbody></table></div>{% include "core/_pager.html" %}</div>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends "core/base.html" %}{% load ui %}{% block title %}Ученики{% endblock %}
+{% block crumbs %}{% icon "users" 15 %} Ученики{% endblock %}
+{% block content %}
+<div class="ph"><div><h1>Ученики</h1><p>{{ page.paginator.count }} учеников{% if user.is_teacher %} в ваших группах{% endif %}</p></div>
+  {% if user.is_admin %}<div class="actions"><a class="btn primary" href="{% url 'student_new' %}">{% icon "user-plus" 17 %} Новый ученик</a></div>{% endif %}</div>
+<form class="toolbar">
+  <div class="field-icon">{% icon "search" 17 %}<input name="q" value="{{ f.q }}" placeholder="Имя или телефон"></div>
+  <select name="group" onchange="this.form.submit()" style="width:260px"><option value="">Все группы</option>{% for g in groups %}<option value="{{ g.pk }}" {% if f.group == g.pk|stringformat:"s" %}selected{% endif %}>{{ g }}</option>{% endfor %}</select>
+</form>
+<div class="card"><div class="table-wrap"><table>
+  <thead><tr><th>Ученик</th><th>Возраст</th><th>Группы</th><th>Филиал</th><th>Монеты</th><th>Статус</th><th></th></tr></thead><tbody>
+  {% for s in page %}<tr>
+    <td><a class="person" href="{% url 'student_profile' s.pk %}">{% avatar s 38 %}<div><b>{{ s.get_full_name }}</b><span>{{ s.phone }}</span></div></a></td>
+    <td class="num">{% if s.age %}{{ s.age }} лет{% else %}<span class="faint">—</span>{% endif %}</td>
+    <td>{% for g in s.study_groups.all %}<a class="badge {% if g.is_active %}{% else %}gray{% endif %}" href="{% url 'group_detail' g.pk %}" style="margin:2px 2px 2px 0">{{ g.course.icon }} {{ g.name|truncatechars:26 }}</a>{% empty %}<span class="faint">—</span>{% endfor %}</td>
+    <td class="small">{{ s.branch|default:"—" }}</td>
+    <td><span class="coin-pill num"><span class="coin"></span>{{ s.balance|default:0 }}</span></td>
+    <td>{% if s.is_active %}<span class="badge green"><span class="dot"></span>Активен</span>{% else %}<span class="badge red">{% icon "ban" 12 %} Заблокирован</span>{% endif %}</td>
+    <td class="actions">
+      <a class="btn icon ghost" title="Дать монеты" href="{% url 'give_coins' %}?student={{ s.pk }}">{% icon "hand-coins" 16 %}</a>
+      {% if user.is_admin %}
+        <a class="btn icon ghost" title="Редактировать" href="{% url 'student_edit' s.pk %}">{% icon "pencil" 16 %}</a>
+        <form method="post" action="{% url 'toggle_active' s.pk %}" style="display:inline" data-confirm="{% if s.is_active %}Заблокировать{% else %}Разблокировать{% endif %} {{ s.get_full_name }}?" data-confirm-text="{% if s.is_active %}Ученик не сможет войти в систему. Данные сохранятся.{% else %}Ученик снова сможет войти.{% endif %}" data-ok="{% if s.is_active %}Заблокировать{% else %}Разблокировать{% endif %}" {% if not s.is_active %}data-tone="primary"{% endif %}>{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+          <button class="btn icon ghost" title="{% if s.is_active %}Заблокировать{% else %}Разблокировать{% endif %}">{% if s.is_active %}{% icon "lock" 16 %}{% else %}{% icon "lock-open" 16 %}{% endif %}</button></form>
+        {% include "core/_delete.html" with kind="student" obj=s next=request.get_full_path warn="Ученик, его оценки и вся история монет будут удалены навсегда." %}
+      {% endif %}
+    </td>
+  </tr>{% empty %}<tr><td colspan="7"><div class="empty">{% icon "users" 40 %}<b>Учеников не найдено</b>Измените поиск или добавьте нового ученика</div></td></tr>{% endfor %}
+  </tbody></table></div>
+  {% include "core/_pager.html" %}
+</div>
+{% endblock %}

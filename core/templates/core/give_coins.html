@@ -1,0 +1,32 @@
+{% extends "core/base.html" %}{% load ui %}{% block title %}Монеты{% endblock %}
+{% block crumbs %}{% icon "hand-coins" 15 %} Монеты{% endblock %}
+{% block content %}
+<div class="ph"><div><h1>{% if user.is_admin %}Начислить монеты{% else %}Дать монеты{% endif %}</h1><p>Награди ученика за проект, активность или помощь другим</p></div></div>
+<div class="grid c-form">
+  <form method="post" class="card" style="align-self:start">{% csrf_token %}
+    <div class="dlg" style="padding:0 0 6px"><div class="ic pr" style="background:var(--gold);color:#7c2d12">{% icon "coins" 28 %}</div></div>
+    <div class="form-grid one">
+      {% include "core/_field.html" with field=form.student %}
+      <div class="f {% if form.amount.errors %}has-err{% endif %}"><label class="l" for="id_amount">Сколько монет</label>
+        <div class="seg" style="width:100%;justify-content:space-between;margin-bottom:4px">
+          <a href="#" data-amt="1">+1</a><a href="#" data-amt="3">+3</a><a href="#" data-amt="5">+5</a><a href="#" data-amt="10">+10</a><a href="#" data-amt="20">+20</a></div>
+        {{ form.amount }}<span class="help">{{ form.amount.help_text }}</span>{% for e in form.amount.errors %}<span class="err">{{ e }}</span>{% endfor %}</div>
+      {% include "core/_field.html" with field=form.reason %}
+    </div>
+    <button class="btn primary block" style="height:46px;margin-top:22px">{% icon "send" 17 %} Начислить</button>
+    <p class="small muted" style="margin:16px 0 0;text-align:center">Бонусные <b>баллы</b> (влияют на недельный балл) ставятся в журнале — колонки «Бонус».</p>
+  </form>
+  <div class="card"><div class="card-h"><div><h2>Последние начисления</h2><span class="sub">{% if user.is_admin %}Все учителя{% else %}Ваши{% endif %}</span></div></div>
+    {% for t in recent %}<div class="tx">{% avatar t.student 38 %}
+      <div class="grow"><b>{{ t.student }}</b><span class="small muted">{{ t.reason|default:"Без причины" }} · {{ t.created_by }}</span></div>
+      <span class="small faint">{{ t.created_at|date:"d.m H:i" }}</span>
+      <span class="amt num {% if t.amount > 0 %}plus{% else %}minus{% endif %}" style="width:48px;text-align:right">{% if t.amount > 0 %}+{% endif %}{{ t.amount }}</span></div>
+    {% empty %}<div class="empty">{% icon "hand-coins" 36 %}<b>Пока пусто</b>Здесь появятся ручные начисления</div>{% endfor %}
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}<script>
+document.querySelectorAll('[data-amt]').forEach(a => a.addEventListener('click', e => { e.preventDefault();
+  document.querySelectorAll('[data-amt]').forEach(x => x.classList.remove('on')); a.classList.add('on');
+  document.getElementById('id_amount').value = a.dataset.amt; }));
+</script>{% endblock %}

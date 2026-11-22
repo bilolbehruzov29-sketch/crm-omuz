@@ -1,0 +1,2 @@
+{% load ui %}<form method="post" action="{% url 'delete' kind obj.pk %}" data-confirm="Удалить «{{ obj }}»?" data-confirm-text="{{ warn|default:'Это действие нельзя отменить.' }}" style="display:inline">{% csrf_token %}{% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+<button class="btn {% if label %}danger{% else %}icon danger ghost{% endif %}" title="Удалить">{% icon "trash-2" 16 %}{% if label %} {{ label }}{% endif %}</button></form>

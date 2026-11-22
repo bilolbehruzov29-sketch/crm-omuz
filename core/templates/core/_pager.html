@@ -1,0 +1,7 @@
+{% load ui %}{% if page.paginator.num_pages > 1 %}<div style="display:flex;align-items:center;justify-content:space-between;margin-top:18px" class="small muted">
+<span>{{ page.start_index }}–{{ page.end_index }} из {{ page.paginator.count }}</span>
+<div class="btn-row">
+{% if page.has_previous %}<a class="btn icon" href="?{% for k, v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v|urlencode }}&{% endif %}{% endfor %}page={{ page.previous_page_number }}">{% icon "chevron-left" %}</a>{% endif %}
+<span class="btn icon primary">{{ page.number }}</span>
+{% if page.has_next %}<a class="btn icon" href="?{% for k, v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v|urlencode }}&{% endif %}{% endfor %}page={{ page.next_page_number }}">{% icon "chevron-right" %}</a>{% endif %}
+</div></div>{% endif %}

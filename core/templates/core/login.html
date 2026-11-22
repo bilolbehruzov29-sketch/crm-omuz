@@ -1,0 +1,29 @@
+{% load static ui %}<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Вход · CRM Omuz Bilol</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'core/app.css' %}">
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){}</script>
+</head><body>
+<div class="login">
+  <section class="art">
+    <div class="brand" style="padding:0"><span class="brand-mark">{% icon "graduation-cap" 21 %}</span><span class="brand-name">omuz <span style="background:linear-gradient(90deg,#a5b4fc,#f0abfc);-webkit-background-clip:text;background-clip:text;color:transparent">bilol</span><small>учебный центр</small></span></div>
+    <div>
+      <h1>Учись, получай баллы — <span>зарабатывай монеты.</span></h1>
+      <p>Журнал, посещаемость, недельные рейтинги и магазин наград — всё в одном месте для учеников, учителей и администрации.</p>
+      <div class="feats"><div>{% icon "trophy" 18 %} Недельный рейтинг</div><div>{% icon "coins" 18 %} Монеты за успехи</div><div>{% icon "gift" 18 %} Магазин наград</div></div>
+    </div>
+    <p class="small" style="color:#5b6380">© CRM Omuz Bilol</p>
+  </section>
+  <section class="panel">
+    <form method="post">{% csrf_token %}
+      <h2>С возвращением 👋</h2>
+      <p class="muted" style="margin:6px 0 28px">Войдите по номеру телефона</p>
+      {% if form.errors %}<div class="toast error" style="margin-bottom:18px;animation:none"><span class="ic">{% icon "circle-x" %}</span><p>Неверный телефон или пароль</p></div>{% endif %}
+      <div class="form-grid one">
+        <div class="f"><label class="l" for="id_username">Телефон</label><div class="phone"><input class="cc" value="+992" disabled>{{ form.username }}</div></div>
+        <div class="f"><label class="l" for="id_password">Пароль</label>{{ form.password }}</div>
+      </div>
+      <button class="btn primary block" style="height:46px;margin-top:26px">Войти {% icon "arrow-right" 18 %}</button>
+    </form>
+  </section>
+</div></body></html>
